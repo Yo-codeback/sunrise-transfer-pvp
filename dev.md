@@ -164,5 +164,186 @@ Sword(淺藍)Axe(橘)UHC(黃)Mace(灰)Crystal(紫)
 /pvp admin player [遊戲列表] [數量]
 更新遊戲列表中每個遊戲的人數 達到後倒數3秒開始遊戲
 
+/pvp admin reload
+重新載入配置檔案
 
-(指令未詳細列出 請更新此文件)
+/pvp admin list
+列出所有等待中的遊戲和進行中的遊戲
+
+/pvp admin npc spawn <類型>
+在大廳生成指定類型的NPC
+類型: sword, axe, uhc, mace, crystal, kiteditor
+
+/pvp admin npc remove <類型>
+移除指定類型的NPC
+
+/pvp admin npc reload
+重新載入NPC配置
+
+---
+
+## 實作進度記錄
+
+版本: 0.0.0.alpha
+日期: 2025/11/13
+狀態: 第一次內測 - 流程測試
+
+### 已完成功能
+
+#### 核心系統
+- [x] Maven專案結構建立
+- [x] Folia依賴配置
+- [x] 配置檔案系統 (config.yml)
+- [x] 指令系統基礎框架 (含Tab補全)
+- [x] 遊戲管理器 (GameManager)
+- [x] 遊戲實例管理 (GameInstance)
+- [x] 地圖管理器 (MapManager) - 地圖複製、載入、清理
+- [x] Kit管理器 (KitManager) - Kit配置讀取和給予
+- [x] 玩家管理器 (PlayerManager) - 玩家狀態、物品欄管理
+- [x] GUI管理器 (GUIManager) - 模式選擇GUI、Kit編輯器GUI
+- [x] NPC管理器 (NPCManager) - 自製NPC系統
+
+#### NPC系統
+- [x] NPC生成 (使用ArmorStand)
+- [x] NPC名稱標籤顯示 (彩色標籤)
+- [x] NPC點擊事件處理
+- [x] NPC位置配置 (config.yml)
+- [x] 5個遊戲模式NPC + 1個Kit Editor NPC
+- [x] 自動生成機制（插件啟動時自動載入）
+- [x] 手動生成/移除指令
+
+#### 遊戲流程
+- [x] 加入遊戲 (/pvp game join)
+- [x] 自動匹配邏輯 (尋找等待中的遊戲或創建新遊戲)
+- [x] 遊戲ID生成 (唯一ID，使用title顯示)
+- [x] 地圖複製系統 (從模板複製)
+- [x] Kit自動給予
+- [x] 離開遊戲 (/pvp game leave, /pvp lobby)
+- [x] 大廳物品欄還原
+- [x] 遊戲人數達到上限後倒數3秒開始
+
+#### GUI系統
+- [x] 模式選擇GUI (快速戰鬥)
+- [x] Kit編輯器GUI
+- [x] 玩家物品欄編輯 (Kit編輯)
+- [x] Kit配置儲存
+
+#### 玩家指令
+- [x] /pvp - 顯示幫助
+- [x] /pvp game join <模式> - 加入遊戲
+- [x] /pvp game leave - 離開遊戲
+- [x] /pvp lobby - 返回大廳
+- [x] /pvp kit - 打開Kit編輯器
+
+#### 管理員指令
+- [x] /pvp admin - 顯示管理員幫助
+- [x] /pvp admin id - 列出所有進行中的遊戲ID
+- [x] /pvp admin open <遊戲ID> - 強制開始遊戲
+- [x] /pvp admin close <遊戲ID> - 強制結束遊戲
+- [x] /pvp admin reload - 重新載入配置
+- [x] /pvp admin list - 列出所有遊戲
+- [x] /pvp admin npc spawn <類型> - 生成NPC
+- [x] /pvp admin npc remove <類型> - 移除NPC
+- [x] /pvp admin npc reload - 重新載入NPC
+
+#### 事件處理
+- [x] 玩家加入大廳時給予大廳物品
+- [x] 玩家離開時自動離開遊戲
+- [x] 大廳物品不可丟棄
+- [x] NPC點擊事件
+- [x] GUI點擊事件
+- [x] 快速戰鬥物品點擊
+
+### 待實作功能 (第一次內測不包含)
+
+- [ ] Party/Friend系統 (思考中...)
+- [ ] /pvp admin gameset - 設定地圖 (基本框架已建立)
+- [ ] /pvp admin player - 設定遊戲人數上限 (基本框架已建立)
+- [ ] 完整的遊戲機制 (目前僅實作基本框架)
+- [ ] 統計系統
+- [ ] 排行榜
+- [ ] 複雜的遊戲規則和判定
+
+### 技術實作細節
+
+#### NPC系統
+- 使用ArmorStand實體創建NPC
+- 使用CustomName顯示彩色名稱標籤
+- 使用PlayerInteractEntityEvent處理點擊
+- NPC位置配置在config.yml的npc-locations區塊
+
+#### 地圖系統
+- 支援5張地圖模板 (每個模式)
+- 隨機ID系統生成唯一地圖實例
+- 地圖複製使用Java NIO Files API
+- 遊戲結束後自動清理地圖實例
+
+#### Kit系統
+- Kit配置儲存在plugins/PVPPlugin/kits/目錄
+- 每個模式有獨立的Kit配置檔案
+- 支援物品槽位自訂
+- Kit編輯器允許玩家編輯並儲存配置
+
+#### 遊戲匹配
+- 自動尋找等待中的遊戲
+- 如果沒有等待中的遊戲，創建新遊戲
+- 遊戲ID使用UUID生成，確保唯一性
+- 達到人數上限後自動倒數3秒開始
+
+### 配置檔案說明
+
+#### config.yml
+- `lobby-world`: 大廳世界名稱
+- `game-modes`: 各遊戲模式的設定 (min-players, max-players, maps)
+- `npc-locations`: NPC位置配置 (world, x, y, z, yaw, pitch)
+- `map-templates-dir`: 地圖模板目錄
+- `kits-dir`: Kit配置目錄
+- `game-settings`: 遊戲設定 (countdown-seconds, auto-start)
+
+#### Kit配置檔案 (kits/<模式>.yml)
+- `items.<槽位>`: 物品配置 (格式: MATERIAL:數量)
+
+### 注意事項
+
+1. **NPC系統**: 已改為自製NPC系統，不再依賴其他NPC插件
+2. **地圖複製**: 需要確保地圖模板存在於server目錄中
+3. **大廳世界**: 需要先創建名為"lobby"的世界 (或修改config.yml)
+4. **Kit編輯**: 目前Kit編輯功能已實作，但需要進一步測試
+5. **遊戲流程**: 目前僅實作基本流程測試，完整遊戲機制待後續開發
+
+### 測試建議
+
+1. 測試NPC生成和點擊
+2. 測試遊戲加入和離開流程
+3. 測試地圖複製功能
+4. 測試Kit給予和編輯
+5. 測試遊戲匹配邏輯
+6. 測試管理員指令
+7. 測試多玩家同時加入遊戲
+
+### CI/CD 配置
+
+#### GitHub Actions 自動編譯
+
+專案已配置 GitHub Actions 工作流程，位於 `.github/workflows/build.yml`
+
+**觸發條件**：
+- 推送到 main/master/develop 分支
+- Pull Request 到上述分支
+- 手動觸發 (workflow_dispatch)
+
+**編譯流程**：
+- 使用 JDK 17
+- 執行 `mvn clean package`
+- 自動上傳 JAR 檔案作為 artifact（保留7天）
+
+**使用方式**：
+1. 推送代碼到 GitHub
+2. 前往 Actions 頁面查看編譯狀態
+3. 編譯完成後下載 artifact 中的 JAR 檔案
+
+**本地編譯**：
+```bash
+mvn clean package
+```
+編譯後的 JAR 檔案位於 `target/` 目錄

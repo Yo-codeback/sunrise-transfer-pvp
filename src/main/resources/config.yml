@@ -1,0 +1,121 @@
+# PVP Plugin Configuration
+# Version: 0.0.0-alpha
+# Date: 2025/11/13
+
+# 大廳世界名稱
+lobby-world: "lobby"
+
+# 遊戲模式設定
+game-modes:
+  sword:
+    display-name: "Sword"
+    color: "AQUA"
+    min-players: 2
+    max-players: 2
+    maps:
+      - "sword-basic-01"
+      - "sword-basic-02"
+      - "sword-basic-03"
+      - "sword-basic-04"
+      - "sword-basic-05"
+  axe:
+    display-name: "Axe"
+    color: "GOLD"
+    min-players: 2
+    max-players: 2
+    maps:
+      - "axe-basic-01"
+      - "axe-basic-02"
+      - "axe-basic-03"
+      - "axe-basic-04"
+      - "axe-basic-05"
+  uhc:
+    display-name: "UHC"
+    color: "YELLOW"
+    min-players: 2
+    max-players: 2
+    maps:
+      - "uhc-basic-01"
+      - "uhc-basic-02"
+      - "uhc-basic-03"
+      - "uhc-basic-04"
+      - "uhc-basic-05"
+  mace:
+    display-name: "Mace"
+    color: "GRAY"
+    min-players: 2
+    max-players: 2
+    maps:
+      - "mace-basic-01"
+      - "mace-basic-02"
+      - "mace-basic-03"
+      - "mace-basic-04"
+      - "mace-basic-05"
+  crystal:
+    display-name: "Crystal"
+    color: "LIGHT_PURPLE"
+    min-players: 2
+    max-players: 2
+    maps:
+      - "crystal-basic-01"
+      - "crystal-basic-02"
+      - "crystal-basic-03"
+      - "crystal-basic-04"
+      - "crystal-basic-05"
+
+# NPC位置設定（相對於大廳世界）
+npc-locations:
+  sword:
+    world: "lobby"
+    x: 0.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+  axe:
+    world: "lobby"
+    x: 2.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+  uhc:
+    world: "lobby"
+    x: 4.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+  mace:
+    world: "lobby"
+    x: 6.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+  crystal:
+    world: "lobby"
+    x: 8.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+  kiteditor:
+    world: "lobby"
+    x: 10.5
+    y: 64.0
+    z: 10.5
+    yaw: 0.0
+    pitch: 0.0
+
+# 地圖模板目錄
+map-templates-dir: "maps"
+
+# Kit配置目錄
+kits-dir: "kits"
+
+# 遊戲設定
+game-settings:
+  countdown-seconds: 3
+  auto-start: true
+

@@ -1,0 +1,14 @@
+name: PVPPlugin
+version: '${project.version}'
+main: com.pvp.Main
+api-version: '1.20'
+author: YourName
+description: PVP Plugin for Folia 1.20+
+folia-supported: true
+
+commands:
+  pvp:
+    description: PVP主指令
+    usage: /<command> [subcommand]
+    aliases: [pvp]
+
