@@ -38,8 +38,10 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new com.pvp.listener.GUIListener(this), this);
         getServer().getPluginManager().registerEvents(new com.pvp.listener.NPCListener(this), this);
         
-        // 載入NPC
-        npcManager.loadNPCs();
+        // 延遲載入NPC（確保世界已載入）
+        getServer().getScheduler().runTaskLater(this, () -> {
+            npcManager.loadNPCs();
+        }, 40L); // 延遲2秒（40 ticks）
         
         getLogger().info("PVP Plugin 已啟用！版本: " + getDescription().getVersion());
     }

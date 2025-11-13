@@ -107,6 +107,15 @@ public class GameManager {
         GameInstance game = games.get(gameID);
         if (game != null) {
             game.setState(GameState.IN_PROGRESS);
+            
+            // 給所有玩家Kit
+            for (UUID uuid : game.getPlayers()) {
+                Player player = org.bukkit.Bukkit.getPlayer(uuid);
+                if (player != null) {
+                    // 給予遊戲Kit
+                    plugin.getPlayerManager().giveGameKit(player, game.getGameMode());
+                }
+            }
         }
     }
     

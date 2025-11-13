@@ -68,7 +68,35 @@ public class PlayerManager {
         // 儲存大廳物品欄
         saveLobbyInventory(player);
         
-        // 給予Kit
+        // 清除物品欄
+        player.getInventory().clear();
+        
+        // 補滿血量和飽食度
+        player.setHealth(player.getMaxHealth());
+        player.setFoodLevel(20);
+        player.setSaturation(20.0f);
+        
+        // 等待狀態時只給退出物品，不給Kit
+        giveLeaveItem(player);
+    }
+    
+    public void giveLeaveItem(Player player) {
+        // 創建退出遊戲物品（紅色床）
+        org.bukkit.inventory.ItemStack leaveItem = new org.bukkit.inventory.ItemStack(org.bukkit.Material.RED_BED);
+        org.bukkit.inventory.meta.ItemMeta meta = leaveItem.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§c退出遊戲");
+            java.util.List<String> lore = new java.util.ArrayList<>();
+            lore.add("§7右鍵退出遊戲");
+            meta.setLore(lore);
+            leaveItem.setItemMeta(meta);
+        }
+        player.getInventory().setItem(8, leaveItem); // 放在第9個槽位（索引8）
+        player.updateInventory();
+    }
+    
+    public void giveGameKit(Player player, GameMode mode) {
+        // 給予Kit（遊戲開始時調用）
         plugin.getKitManager().giveKit(player, mode);
     }
     

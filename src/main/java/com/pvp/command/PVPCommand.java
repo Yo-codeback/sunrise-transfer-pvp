@@ -130,7 +130,7 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
             return;
         }
         
-        // 給予Kit
+        // 加入遊戲（等待狀態，只給退出物品）
         plugin.getPlayerManager().joinGame(player, mode);
         
         // 顯示遊戲ID
