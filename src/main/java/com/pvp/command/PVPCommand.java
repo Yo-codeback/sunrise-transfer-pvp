@@ -107,15 +107,27 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
             return;
         }
         
-        // 複製地圖
-        String mapName = plugin.getMapManager().copyMap(mode);
-        if (mapName != null) {
-            game.setMapName(mapName);
-            World world = plugin.getMapManager().loadMap(mapName);
-            if (world != null) {
-                // 傳送玩家到地圖
-                player.teleport(world.getSpawnLocation());
+        // 如果是新遊戲，分配位置
+        if (game.getMapPosition() == -1) {
+            int position = plugin.getMapManager().getAvailablePosition(mode);
+            if (position == -1) {
+                player.sendMessage("§c沒有可用的遊戲位置！");
+                gameManager.leaveGame(player);
+                return;
             }
+            game.setMapPosition(position);
+            plugin.getMapManager().occupyPosition(mode, position);
+        }
+        
+        // 傳送玩家到地圖位置
+        org.bukkit.Location location = plugin.getMapManager().getMapLocation(mode, game.getMapPosition());
+        if (location != null) {
+            player.teleport(location);
+        } else {
+            player.sendMessage("§c無法載入地圖位置！");
+            plugin.getMapManager().releasePosition(mode, game.getMapPosition());
+            gameManager.leaveGame(player);
+            return;
         }
         
         // 給予Kit
@@ -126,6 +138,7 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§a已加入 " + mode.getDisplayName() + " 模式！");
         player.sendMessage("§7遊戲ID: §e" + game.getGameID());
         player.sendMessage("§7當前玩家數: §e" + game.getPlayerCount() + "/" + game.getMaxPlayers());
+        player.sendMessage("§7位置編號: §e" + game.getMapPosition());
         
         // 檢查是否可以開始遊戲
         if (game.isFull()) {
@@ -142,9 +155,16 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
             return;
         }
         
+        // 記錄遊戲模式（離開後game可能被移除）
+        GameMode mode = game.getGameMode();
+        int position = game.getMapPosition();
+        
         // 離開遊戲
         gameManager.leaveGame(player);
         plugin.getPlayerManager().leaveGame(player);
+        
+        // 如果遊戲沒有玩家了，位置會在endGame中釋放
+        // 這裡不需要額外處理
         
         // 傳送回大廳
         String lobbyWorld = plugin.getConfig().getString("lobby-world", "lobby");
@@ -193,13 +213,12 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
         }
         
         switch (args[0].toLowerCase()) {
-            case "gameset":
-                if (args.length < 3) {
-                    player.sendMessage("§c用法: /pvp admin gameset <模式> <地圖編號>");
+            case "map":
+                if (args.length < 2) {
+                    player.sendMessage("§c用法: /pvp admin map <setpos|list> [模式] [編號]");
                     return;
                 }
-                // TODO: 實作gameset
-                player.sendMessage("§7此功能待實作");
+                handleMapCommand(player, Arrays.copyOfRange(args, 1, args.length));
                 break;
                 
             case "id":
@@ -275,6 +294,78 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
         }
     }
     
+    private void handleMapCommand(Player player, String[] args) {
+        if (args.length == 0) {
+            player.sendMessage("§c用法: /pvp admin map <setpos|list> [模式] [編號]");
+            return;
+        }
+        
+        String action = args[0].toLowerCase();
+        
+        if (action.equalsIgnoreCase("setpos")) {
+            if (args.length < 3) {
+                player.sendMessage("§c用法: /pvp admin map setpos <模式> <編號1-5>");
+                player.sendMessage("§7在您要設定的位置執行此指令");
+                return;
+            }
+            
+            GameMode mode = GameMode.fromString(args[1]);
+            if (mode == null) {
+                player.sendMessage("§c無效的遊戲模式！");
+                return;
+            }
+            
+            try {
+                int positionNumber = Integer.parseInt(args[2]);
+                if (positionNumber < 1 || positionNumber > 5) {
+                    player.sendMessage("§c位置編號必須在1-5之間！");
+                    return;
+                }
+                
+                // 設定當前位置
+                plugin.getMapManager().setMapPosition(mode, positionNumber, player.getLocation());
+                player.sendMessage("§a已設定 " + mode.getDisplayName() + " 模式的位置 " + positionNumber);
+                player.sendMessage("§7世界: §e" + player.getLocation().getWorld().getName());
+                player.sendMessage("§7座標: §e" + String.format("%.2f, %.2f, %.2f", 
+                    player.getLocation().getX(), 
+                    player.getLocation().getY(), 
+                    player.getLocation().getZ()));
+            } catch (NumberFormatException e) {
+                player.sendMessage("§c位置編號必須是數字！");
+            }
+            
+        } else if (action.equalsIgnoreCase("list")) {
+            if (args.length < 2) {
+                player.sendMessage("§c用法: /pvp admin map list <模式>");
+                return;
+            }
+            
+            GameMode mode = GameMode.fromString(args[1]);
+            if (mode == null) {
+                player.sendMessage("§c無效的遊戲模式！");
+                return;
+            }
+            
+            java.util.List<Integer> positions = plugin.getMapManager().getConfiguredPositions(mode);
+            if (positions.isEmpty()) {
+                player.sendMessage("§7" + mode.getDisplayName() + " 模式尚未設定任何位置");
+            } else {
+                player.sendMessage("§a" + mode.getDisplayName() + " 模式已設定的位置:");
+                for (int pos : positions) {
+                    org.bukkit.Location loc = plugin.getMapManager().getMapLocation(mode, pos);
+                    if (loc != null) {
+                        boolean occupied = plugin.getMapManager().isPositionOccupied(mode, pos);
+                        String status = occupied ? "§c[占用中]" : "§a[可用]";
+                        player.sendMessage("§7  位置 " + pos + ": §e" + loc.getWorld().getName() + 
+                            " §7" + String.format("(%.1f, %.1f, %.1f) ", loc.getX(), loc.getY(), loc.getZ()) + status);
+                    }
+                }
+            }
+        } else {
+            player.sendMessage("§c用法: /pvp admin map <setpos|list> [模式] [編號]");
+        }
+    }
+    
     private void handleNPCCommand(Player player, String action, String typeStr) {
         if (action.equalsIgnoreCase("reload")) {
             plugin.getNPCManager().removeAllNPCs();
@@ -315,7 +406,8 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
     
     private void sendAdminHelp(Player player) {
         player.sendMessage("§6=== PVP 管理員指令 ===");
-        player.sendMessage("§e/pvp admin gameset <模式> <地圖編號> §7- 設定地圖");
+        player.sendMessage("§e/pvp admin map setpos <模式> <編號1-5> §7- 設定地圖位置");
+        player.sendMessage("§e/pvp admin map list <模式> §7- 列出已設定的位置");
         player.sendMessage("§e/pvp admin id §7- 查看遊戲ID");
         player.sendMessage("§e/pvp admin open <ID> §7- 強制開始遊戲");
         player.sendMessage("§e/pvp admin close <ID> §7- 強制結束遊戲");
@@ -340,7 +432,7 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
             } else if (args[0].equalsIgnoreCase("admin")) {
                 // 檢查權限
                 if (sender.hasPermission("pvp.admin")) {
-                    completions.addAll(Arrays.asList("gameset", "id", "open", "close", "player", "reload", "list", "npc"));
+                    completions.addAll(Arrays.asList("map", "id", "open", "close", "player", "reload", "list", "npc"));
                 }
             }
         }
@@ -350,9 +442,11 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
                 // 遊戲模式
                 completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal"));
             } else if (args[0].equalsIgnoreCase("admin")) {
-                if (args[1].equalsIgnoreCase("gameset")) {
-                    // 遊戲模式
-                    completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal"));
+                if (args[1].equalsIgnoreCase("map")) {
+                    if (args[2].equalsIgnoreCase("setpos") || args[2].equalsIgnoreCase("list")) {
+                        // 遊戲模式
+                        completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal"));
+                    }
                 } else if (args[1].equalsIgnoreCase("player")) {
                     // 遊戲模式
                     completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal"));
@@ -370,9 +464,11 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
         // 第四層：更多參數
         else if (args.length == 4) {
             if (args[0].equalsIgnoreCase("admin")) {
-                if (args[1].equalsIgnoreCase("gameset")) {
-                    // 地圖編號 (1-5)
-                    completions.addAll(Arrays.asList("1", "2", "3", "4", "5"));
+                if (args[1].equalsIgnoreCase("map")) {
+                    if (args[2].equalsIgnoreCase("setpos")) {
+                        // 地圖編號 (1-5)
+                        completions.addAll(Arrays.asList("1", "2", "3", "4", "5"));
+                    }
                 } else if (args[1].equalsIgnoreCase("player")) {
                     // 玩家數量建議
                     completions.addAll(Arrays.asList("2", "4", "6", "8", "10"));

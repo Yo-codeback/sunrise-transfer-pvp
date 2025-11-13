@@ -2,132 +2,157 @@ package com.pvp.manager;
 
 import com.pvp.Main;
 import com.pvp.game.GameMode;
-import com.pvp.util.IDGenerator;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.configuration.ConfigurationSection;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
+import java.util.Set;
 
 public class MapManager {
     
     private final Main plugin;
-    private final Random random = new Random();
+    private final Set<String> occupiedPositions = new HashSet<>(); // 格式: "mode:posNumber"
     
     public MapManager(Main plugin) {
         this.plugin = plugin;
     }
     
-    public String copyMap(GameMode mode) {
-        List<String> maps = plugin.getConfig().getStringList("game-modes." + mode.getId() + ".maps");
-        if (maps.isEmpty()) {
-            plugin.getLogger().warning("遊戲模式 " + mode.getId() + " 沒有地圖配置！");
-            return null;
+    /**
+     * 獲取指定遊戲模式的可用位置編號
+     * @param mode 遊戲模式
+     * @return 可用位置編號，如果沒有可用位置返回-1
+     */
+    public int getAvailablePosition(GameMode mode) {
+        List<Integer> positions = getConfiguredPositions(mode);
+        if (positions.isEmpty()) {
+            plugin.getLogger().warning("遊戲模式 " + mode.getId() + " 沒有配置位置！");
+            return -1;
         }
         
-        // 隨機選擇一張地圖
-        String templateMap = maps.get(random.nextInt(maps.size()));
-        
-        // 生成新的地圖ID
-        String mapID = IDGenerator.generateMapID();
-        String newMapName = mode.getId() + "-basic-" + mapID;
-        
-        // 複製地圖
-        File serverDir = Bukkit.getWorldContainer();
-        File templateDir = new File(serverDir, templateMap);
-        File newMapDir = new File(serverDir, newMapName);
-        
-        if (!templateDir.exists()) {
-            plugin.getLogger().warning("地圖模板不存在: " + templateMap);
-            return null;
-        }
-        
-        try {
-            copyDirectory(templateDir.toPath(), newMapDir.toPath());
-            plugin.getLogger().info("已複製地圖: " + templateMap + " -> " + newMapName);
-            return newMapName;
-        } catch (IOException e) {
-            plugin.getLogger().severe("複製地圖失敗: " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
-    }
-    
-    public World loadMap(String mapName) {
-        World world = Bukkit.getWorld(mapName);
-        if (world != null) {
-            return world;
-        }
-        
-        WorldCreator creator = new WorldCreator(mapName);
-        world = creator.createWorld();
-        
-        if (world != null) {
-            plugin.getLogger().info("已載入地圖: " + mapName);
-        } else {
-            plugin.getLogger().warning("載入地圖失敗: " + mapName);
-        }
-        
-        return world;
-    }
-    
-    public void unloadMap(String mapName) {
-        World world = Bukkit.getWorld(mapName);
-        if (world != null) {
-            Bukkit.unloadWorld(world, false);
-            plugin.getLogger().info("已卸載地圖: " + mapName);
-        }
-    }
-    
-    public void deleteMap(String mapName) {
-        unloadMap(mapName);
-        
-        File serverDir = Bukkit.getWorldContainer();
-        File mapDir = new File(serverDir, mapName);
-        
-        if (mapDir.exists()) {
-            try {
-                deleteDirectory(mapDir.toPath());
-                plugin.getLogger().info("已刪除地圖: " + mapName);
-            } catch (IOException e) {
-                plugin.getLogger().severe("刪除地圖失敗: " + e.getMessage());
-                e.printStackTrace();
+        // 尋找第一個未被占用的位置
+        for (int posNumber : positions) {
+            String key = mode.getId() + ":" + posNumber;
+            if (!occupiedPositions.contains(key)) {
+                return posNumber;
             }
         }
+        
+        plugin.getLogger().warning("遊戲模式 " + mode.getId() + " 的所有位置都已被占用！");
+        return -1;
     }
     
-    private void copyDirectory(Path source, Path target) throws IOException {
-        Files.walk(source).forEach(sourcePath -> {
-            try {
-                Path targetPath = target.resolve(source.relativize(sourcePath));
-                if (Files.isDirectory(sourcePath)) {
-                    Files.createDirectories(targetPath);
-                } else {
-                    Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+    /**
+     * 獲取指定位置的位置信息
+     * @param mode 遊戲模式
+     * @param positionNumber 位置編號 (1-5)
+     * @return Location，如果位置不存在返回null
+     */
+    public Location getMapLocation(GameMode mode, int positionNumber) {
+        String path = "game-positions." + mode.getId() + "." + positionNumber;
+        ConfigurationSection posSection = plugin.getConfig().getConfigurationSection(path);
+        
+        if (posSection == null) {
+            plugin.getLogger().warning("位置配置不存在: " + path);
+            return null;
+        }
+        
+        String worldName = posSection.getString("world");
+        World world = Bukkit.getWorld(worldName);
+        
+        if (world == null) {
+            plugin.getLogger().warning("世界不存在: " + worldName);
+            return null;
+        }
+        
+        double x = posSection.getDouble("x");
+        double y = posSection.getDouble("y");
+        double z = posSection.getDouble("z");
+        float yaw = (float) posSection.getDouble("yaw", 0.0);
+        float pitch = (float) posSection.getDouble("pitch", 0.0);
+        
+        return new Location(world, x, y, z, yaw, pitch);
     }
     
-    private void deleteDirectory(Path directory) throws IOException {
-        Files.walk(directory)
-            .sorted((a, b) -> b.compareTo(a))
-            .forEach(path -> {
+    /**
+     * 設定指定位置
+     * @param mode 遊戲模式
+     * @param positionNumber 位置編號 (1-5)
+     * @param location 位置
+     */
+    public void setMapPosition(GameMode mode, int positionNumber, Location location) {
+        String path = "game-positions." + mode.getId() + "." + positionNumber;
+        plugin.getConfig().set(path + ".world", location.getWorld().getName());
+        plugin.getConfig().set(path + ".x", location.getX());
+        plugin.getConfig().set(path + ".y", location.getY());
+        plugin.getConfig().set(path + ".z", location.getZ());
+        plugin.getConfig().set(path + ".yaw", location.getYaw());
+        plugin.getConfig().set(path + ".pitch", location.getPitch());
+        plugin.saveConfig();
+    }
+    
+    /**
+     * 獲取已配置的位置編號列表
+     * @param mode 遊戲模式
+     * @return 位置編號列表
+     */
+    public List<Integer> getConfiguredPositions(GameMode mode) {
+        List<Integer> positions = new ArrayList<>();
+        ConfigurationSection modeSection = plugin.getConfig().getConfigurationSection("game-positions." + mode.getId());
+        
+        if (modeSection != null) {
+            for (String key : modeSection.getKeys(false)) {
                 try {
-                    Files.delete(path);
-                } catch (IOException e) {
-                    plugin.getLogger().warning("無法刪除檔案: " + path);
+                    int posNumber = Integer.parseInt(key);
+                    // 檢查位置配置是否完整
+                    if (modeSection.getConfigurationSection(key) != null) {
+                        positions.add(posNumber);
+                    }
+                } catch (NumberFormatException e) {
+                    // 忽略非數字鍵
                 }
-            });
+            }
+        }
+        
+        return positions;
+    }
+    
+    /**
+     * 占用位置
+     * @param mode 遊戲模式
+     * @param positionNumber 位置編號
+     */
+    public void occupyPosition(GameMode mode, int positionNumber) {
+        occupiedPositions.add(mode.getId() + ":" + positionNumber);
+    }
+    
+    /**
+     * 釋放位置
+     * @param mode 遊戲模式
+     * @param positionNumber 位置編號
+     */
+    public void releasePosition(GameMode mode, int positionNumber) {
+        occupiedPositions.remove(mode.getId() + ":" + positionNumber);
+    }
+    
+    /**
+     * 檢查位置是否被占用
+     * @param mode 遊戲模式
+     * @param positionNumber 位置編號
+     * @return 是否被占用
+     */
+    public boolean isPositionOccupied(GameMode mode, int positionNumber) {
+        return occupiedPositions.contains(mode.getId() + ":" + positionNumber);
+    }
+    
+    /**
+     * 釋放所有位置（插件關閉時調用）
+     */
+    public void releaseAllPositions() {
+        occupiedPositions.clear();
     }
 }
 

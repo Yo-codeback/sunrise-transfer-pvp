@@ -115,6 +115,11 @@ public class GameManager {
         if (game != null) {
             game.setState(GameState.ENDING);
             
+            // 釋放位置
+            if (game.getMapPosition() > 0) {
+                plugin.getMapManager().releasePosition(game.getGameMode(), game.getMapPosition());
+            }
+            
             // 移除所有玩家
             Set<UUID> players = new HashSet<>(game.getPlayers());
             for (UUID uuid : players) {

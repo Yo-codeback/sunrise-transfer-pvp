@@ -51,6 +51,11 @@ public class Main extends JavaPlugin {
             gameManager.shutdown();
         }
         
+        // 釋放所有位置
+        if (mapManager != null) {
+            mapManager.releaseAllPositions();
+        }
+        
         // 移除所有NPC
         if (npcManager != null) {
             npcManager.removeAllNPCs();

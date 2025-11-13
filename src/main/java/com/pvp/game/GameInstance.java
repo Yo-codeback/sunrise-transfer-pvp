@@ -13,7 +13,7 @@ public class GameInstance {
     private final GameMode gameMode;
     private final Set<UUID> players = new HashSet<>();
     private GameState state;
-    private String mapName;
+    private int mapPosition; // 位置編號 (1-5)
     private int maxPlayers;
     private int countdown;
     
@@ -23,6 +23,7 @@ public class GameInstance {
         this.maxPlayers = maxPlayers;
         this.state = GameState.WAITING;
         this.countdown = 0;
+        this.mapPosition = -1; // -1表示未設定位置
     }
     
     public String getGameID() {
@@ -67,12 +68,12 @@ public class GameInstance {
         this.state = state;
     }
     
-    public String getMapName() {
-        return mapName;
+    public int getMapPosition() {
+        return mapPosition;
     }
     
-    public void setMapName(String mapName) {
-        this.mapName = mapName;
+    public void setMapPosition(int mapPosition) {
+        this.mapPosition = mapPosition;
     }
     
     public int getMaxPlayers() {
