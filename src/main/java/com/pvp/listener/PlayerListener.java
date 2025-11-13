@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
@@ -117,6 +118,33 @@ public class PlayerListener implements Listener {
                     }
                 }
             }
+        }
+    }
+    
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        com.pvp.game.GameInstance game = plugin.getGameManager().getPlayerGame(player);
+        
+        // 如果玩家在遊戲中，顯示死亡title
+        if (game != null && game.getState() == GameState.IN_PROGRESS) {
+            player.sendTitle("§c您已死亡", "", 0, 40, 20);
+            
+            // 從遊戲中移除死亡玩家
+            plugin.getGameManager().leaveGame(player);
+            
+            // 延遲檢查，確保玩家已從遊戲中移除
+            final String gameID = game.getGameID();
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                com.pvp.game.GameInstance currentGame = plugin.getGameManager().getGame(gameID);
+                if (currentGame != null && currentGame.getState() == GameState.IN_PROGRESS) {
+                    // 檢查遊戲是否應該結束（只剩一個或沒有玩家）
+                    if (currentGame.getPlayerCount() <= 1) {
+                        // 遊戲結束
+                        plugin.getGameManager().endGame(gameID);
+                    }
+                }
+            }, 5L); // 延遲5 ticks確保玩家已移除
         }
     }
 }

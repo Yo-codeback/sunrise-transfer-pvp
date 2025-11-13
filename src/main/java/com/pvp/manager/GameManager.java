@@ -68,9 +68,38 @@ public class GameManager {
         if (game != null) {
             game.removePlayer(player);
             
-            // 如果遊戲沒有玩家了，移除遊戲
-            if (game.getPlayerCount() == 0) {
-                games.remove(gameID);
+            // 如果遊戲正在進行中，檢查是否需要結束遊戲
+            if (game.getState() == GameState.IN_PROGRESS) {
+                // 如果遊戲中沒有玩家了，結束遊戲
+                if (game.getPlayerCount() == 0) {
+                    endGame(gameID);
+                } else {
+                    // 還有玩家，檢查是否只剩一個玩家（勝利者）
+                    if (game.getPlayerCount() == 1) {
+                        // 遊戲結束，剩餘玩家獲勝
+                        endGame(gameID);
+                    }
+                }
+            } else if (game.getState() == GameState.WAITING || game.getState() == GameState.STARTING) {
+                // 如果遊戲在等待或倒數中，玩家離開後重置為等待狀態
+                if (game.getState() == GameState.STARTING) {
+                    game.setState(GameState.WAITING);
+                    game.setCountdown(0);
+                }
+                
+                // 如果遊戲沒有玩家了，移除遊戲
+                if (game.getPlayerCount() == 0) {
+                    // 釋放位置
+                    if (game.getMapPosition() > 0) {
+                        plugin.getMapManager().releasePosition(game.getGameMode(), game.getMapPosition());
+                    }
+                    games.remove(gameID);
+                }
+            } else {
+                // 如果遊戲沒有玩家了，移除遊戲
+                if (game.getPlayerCount() == 0) {
+                    games.remove(gameID);
+                }
             }
         }
         
@@ -103,6 +132,10 @@ public class GameManager {
         return result;
     }
     
+    public Map<UUID, String> getPlayerGames() {
+        return playerGames;
+    }
+    
     public void startGame(String gameID) {
         GameInstance game = games.get(gameID);
         if (game != null) {
@@ -123,6 +156,14 @@ public class GameManager {
         GameInstance game = games.get(gameID);
         if (game != null) {
             game.setState(GameState.ENDING);
+            
+            // 顯示遊戲結束title給所有玩家
+            for (UUID uuid : game.getPlayers()) {
+                Player player = org.bukkit.Bukkit.getPlayer(uuid);
+                if (player != null) {
+                    player.sendTitle("§c遊戲結束", "", 0, 40, 20);
+                }
+            }
             
             // 釋放位置
             if (game.getMapPosition() > 0) {

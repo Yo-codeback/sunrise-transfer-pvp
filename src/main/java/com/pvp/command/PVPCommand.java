@@ -3,8 +3,8 @@ package com.pvp.command;
 import com.pvp.Main;
 import com.pvp.game.GameInstance;
 import com.pvp.game.GameMode;
+import com.pvp.game.GameState;
 import com.pvp.manager.GameManager;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -47,14 +47,25 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
                 
                 if (args[1].equalsIgnoreCase("join")) {
                     if (args.length < 3) {
-                        player.sendMessage("§c用法: /pvp game join <模式>");
+                        player.sendMessage("§c用法: /pvp game join <模式|ID>");
                         player.sendMessage("§7可用模式: sword, axe, uhc, mace, crystal");
+                        player.sendMessage("§7或使用遊戲ID加入指定遊戲");
                         return true;
                     }
                     
-                    GameMode mode = GameMode.fromString(args[2]);
+                    // 檢查是否為遊戲ID（長度通常較長）
+                    String arg = args[2];
+                    GameInstance gameById = plugin.getGameManager().getGame(arg);
+                    if (gameById != null && gameById.getState() == GameState.WAITING && !gameById.isFull()) {
+                        // 通過ID加入遊戲
+                        handleJoinGameById(player, gameById);
+                        return true;
+                    }
+                    
+                    // 否則嘗試作為模式處理
+                    GameMode mode = GameMode.fromString(arg);
                     if (mode == null) {
-                        player.sendMessage("§c無效的遊戲模式！");
+                        player.sendMessage("§c無效的遊戲模式或遊戲ID！");
                         return true;
                     }
                     
@@ -136,6 +147,55 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
         // 顯示遊戲ID
         player.sendTitle("§a已加入遊戲", "§7遊戲ID: §e" + game.getGameID(), 10, 70, 20);
         player.sendMessage("§a已加入 " + mode.getDisplayName() + " 模式！");
+        player.sendMessage("§7遊戲ID: §e" + game.getGameID());
+        player.sendMessage("§7當前玩家數: §e" + game.getPlayerCount() + "/" + game.getMaxPlayers());
+        player.sendMessage("§7位置編號: §e" + game.getMapPosition());
+        
+        // 檢查是否可以開始遊戲
+        if (game.isFull()) {
+            startGameCountdown(game);
+        }
+    }
+    
+    private void handleJoinGameById(Player player, GameInstance game) {
+        GameManager gameManager = plugin.getGameManager();
+        
+        // 檢查玩家是否已在遊戲中
+        if (gameManager.getPlayerGame(player) != null) {
+            player.sendMessage("§c您已經在遊戲中了！");
+            return;
+        }
+        
+        // 檢查遊戲是否可以加入
+        if (!game.canJoin()) {
+            player.sendMessage("§c該遊戲已滿或無法加入！");
+            return;
+        }
+        
+        // 加入遊戲
+        if (!game.addPlayer(player)) {
+            player.sendMessage("§c無法加入遊戲！");
+            return;
+        }
+        
+        gameManager.getPlayerGames().put(player.getUniqueId(), game.getGameID());
+        
+        // 傳送玩家到地圖位置
+        org.bukkit.Location location = plugin.getMapManager().getMapLocation(game.getGameMode(), game.getMapPosition());
+        if (location != null) {
+            player.teleport(location);
+        } else {
+            player.sendMessage("§c無法載入地圖位置！");
+            gameManager.leaveGame(player);
+            return;
+        }
+        
+        // 加入遊戲（等待狀態，只給退出物品）
+        plugin.getPlayerManager().joinGame(player, game.getGameMode());
+        
+        // 顯示遊戲ID
+        player.sendTitle("§a已加入遊戲", "§7遊戲ID: §e" + game.getGameID(), 10, 70, 20);
+        player.sendMessage("§a已加入 " + game.getGameMode().getDisplayName() + " 模式！");
         player.sendMessage("§7遊戲ID: §e" + game.getGameID());
         player.sendMessage("§7當前玩家數: §e" + game.getPlayerCount() + "/" + game.getMaxPlayers());
         player.sendMessage("§7位置編號: §e" + game.getMapPosition());
@@ -441,6 +501,12 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
             if (args[0].equalsIgnoreCase("game") && args[1].equalsIgnoreCase("join")) {
                 // 遊戲模式
                 completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal"));
+                // 添加等待中的遊戲ID
+                for (GameInstance game : plugin.getGameManager().getGamesByState(GameState.WAITING)) {
+                    if (!game.isFull()) {
+                        completions.add(game.getGameID());
+                    }
+                }
             } else if (args[0].equalsIgnoreCase("admin")) {
                 if (args[1].equalsIgnoreCase("map")) {
                     if (args[2].equalsIgnoreCase("setpos") || args[2].equalsIgnoreCase("list")) {

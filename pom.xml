@@ -6,7 +6,7 @@
 
     <groupId>com.pvp</groupId>
     <artifactId>pvp-plugin</artifactId>
-    <version>0.2.0-alpha</version>
+    <version>0.2.1-alpha</version>
     <packaging>jar</packaging>
 
     <name>PVPPlugin</name>
