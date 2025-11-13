@@ -329,31 +329,62 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
         
+        // 第一層：主指令
         if (args.length == 1) {
             completions.addAll(Arrays.asList("game", "lobby", "kit", "admin"));
-        } else if (args.length == 2) {
+        }
+        // 第二層：子指令
+        else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("game")) {
                 completions.addAll(Arrays.asList("join", "leave"));
             } else if (args[0].equalsIgnoreCase("admin")) {
-                completions.addAll(Arrays.asList("gameset", "id", "open", "close", "player", "reload", "list", "npc"));
+                // 檢查權限
+                if (sender.hasPermission("pvp.admin")) {
+                    completions.addAll(Arrays.asList("gameset", "id", "open", "close", "player", "reload", "list", "npc"));
+                }
             }
-        } else if (args.length == 3) {
+        }
+        // 第三層：參數
+        else if (args.length == 3) {
             if (args[0].equalsIgnoreCase("game") && args[1].equalsIgnoreCase("join")) {
+                // 遊戲模式
                 completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal"));
             } else if (args[0].equalsIgnoreCase("admin")) {
-                if (args[1].equalsIgnoreCase("gameset") || args[1].equalsIgnoreCase("player")) {
+                if (args[1].equalsIgnoreCase("gameset")) {
+                    // 遊戲模式
                     completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal"));
+                } else if (args[1].equalsIgnoreCase("player")) {
+                    // 遊戲模式
+                    completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal"));
+                } else if (args[1].equalsIgnoreCase("open") || args[1].equalsIgnoreCase("close")) {
+                    // 遊戲ID列表
+                    for (GameInstance game : plugin.getGameManager().getAllGames()) {
+                        completions.add(game.getGameID());
+                    }
                 } else if (args[1].equalsIgnoreCase("npc")) {
+                    // NPC操作
                     completions.addAll(Arrays.asList("spawn", "remove", "reload"));
                 }
             }
-        } else if (args.length == 4) {
-            if (args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("npc") && 
-                (args[2].equalsIgnoreCase("spawn") || args[2].equalsIgnoreCase("remove"))) {
-                completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal", "kiteditor"));
+        }
+        // 第四層：更多參數
+        else if (args.length == 4) {
+            if (args[0].equalsIgnoreCase("admin")) {
+                if (args[1].equalsIgnoreCase("gameset")) {
+                    // 地圖編號 (1-5)
+                    completions.addAll(Arrays.asList("1", "2", "3", "4", "5"));
+                } else if (args[1].equalsIgnoreCase("player")) {
+                    // 玩家數量建議
+                    completions.addAll(Arrays.asList("2", "4", "6", "8", "10"));
+                } else if (args[1].equalsIgnoreCase("npc") && 
+                          (args[2].equalsIgnoreCase("spawn") || args[2].equalsIgnoreCase("remove"))) {
+                    // NPC類型
+                    completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal", "kiteditor"));
+                }
             }
         }
         
+        // 過濾：只顯示以當前輸入開頭的選項
         String current = args[args.length - 1].toLowerCase();
         return completions.stream()
                 .filter(s -> s.toLowerCase().startsWith(current))
