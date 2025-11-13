@@ -230,7 +230,7 @@ Sword(淺藍)Axe(橘)UHC(黃)Mace(灰)Crystal(紫)
 
 #### 玩家指令
 - [x] /pvp - 顯示幫助
-- [x] /pvp game join <模式> - 加入遊戲
+- [x] /pvp game join <模式> - 加入遊戲（支援Tab補全）
 - [x] /pvp game leave - 離開遊戲
 - [x] /pvp lobby - 返回大廳
 - [x] /pvp kit - 打開Kit編輯器
@@ -238,12 +238,12 @@ Sword(淺藍)Axe(橘)UHC(黃)Mace(灰)Crystal(紫)
 #### 管理員指令
 - [x] /pvp admin - 顯示管理員幫助
 - [x] /pvp admin id - 列出所有進行中的遊戲ID
-- [x] /pvp admin open <遊戲ID> - 強制開始遊戲
-- [x] /pvp admin close <遊戲ID> - 強制結束遊戲
+- [x] /pvp admin open <遊戲ID> - 強制開始遊戲（支援Tab補全遊戲ID）
+- [x] /pvp admin close <遊戲ID> - 強制結束遊戲（支援Tab補全遊戲ID）
 - [x] /pvp admin reload - 重新載入配置
 - [x] /pvp admin list - 列出所有遊戲
-- [x] /pvp admin npc spawn <類型> - 生成NPC
-- [x] /pvp admin npc remove <類型> - 移除NPC
+- [x] /pvp admin npc spawn <類型> - 生成NPC（支援Tab補全）
+- [x] /pvp admin npc remove <類型> - 移除NPC（支援Tab補全）
 - [x] /pvp admin npc reload - 重新載入NPC
 
 #### 事件處理
@@ -253,6 +253,13 @@ Sword(淺藍)Axe(橘)UHC(黃)Mace(灰)Crystal(紫)
 - [x] NPC點擊事件
 - [x] GUI點擊事件
 - [x] 快速戰鬥物品點擊
+
+#### Tab補全系統
+- [x] 完整的Tab補全支援（所有指令）
+- [x] 多層級參數補全（最多4層）
+- [x] 權限檢查（管理員指令需要權限）
+- [x] 動態遊戲ID補全（open/close指令）
+- [x] 智能過濾（根據輸入文字過濾選項）
 
 ### 待實作功能 (第一次內測不包含)
 
