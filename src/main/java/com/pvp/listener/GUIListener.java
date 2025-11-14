@@ -8,11 +8,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.Material;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -20,8 +21,9 @@ import java.util.UUID;
 public class GUIListener implements Listener {
     
     private final Main plugin;
-    private final Map<UUID, Map<Integer, ItemStack>> editingKits = new HashMap<>();
-    private final Map<UUID, GameMode> editingModes = new HashMap<>();
+    // 分離玩家和管理員的編輯狀態
+    private final Map<UUID, GameMode> playerEditingModes = new HashMap<>();
+    private final Map<UUID, GameMode> adminEditingModes = new HashMap<>();
     
     public GUIListener(Main plugin) {
         this.plugin = plugin;
@@ -92,7 +94,7 @@ public class GUIListener implements Listener {
                 plugin.getServer().dispatchCommand(player, "pvp game join " + mode.getId());
             }
         }
-        // Admin Kit編輯器GUI
+        // Admin Kit編輯器GUI - 選擇模式
         else if (title.equals("§d管理員 - Kit編輯器")) {
             event.setCancelled(true);
             
@@ -104,25 +106,12 @@ public class GUIListener implements Listener {
             GameMode mode = guiManager.getModeFromSlot(event.getSlot());
             
             if (mode != null) {
-                player.closeInventory();
-                
-                // 儲存玩家當前物品欄
-                Map<Integer, ItemStack> savedInventory = new HashMap<>();
-                for (int i = 0; i < player.getInventory().getSize(); i++) {
-                    ItemStack item = player.getInventory().getItem(i);
-                    if (item != null) {
-                        savedInventory.put(i, item.clone());
-                    }
-                }
-                editingKits.put(player.getUniqueId(), savedInventory);
-                editingModes.put(player.getUniqueId(), mode);
-                
-                // 給予該模式的Kit物品
-                plugin.getKitManager().giveKit(player, mode);
-                player.sendMessage("§a已載入 " + mode.getDisplayName() + " 模式的Kit，請編輯後關閉物品欄以儲存");
+                // 打開該模式的Kit編輯GUI
+                adminEditingModes.put(player.getUniqueId(), mode);
+                player.openInventory(guiManager.createKitEditGUI(mode, true));
             }
         }
-        // Kit編輯器GUI（玩家用）
+        // Kit編輯器GUI（玩家用）- 選擇模式
         else if (title.equals("§dKit編輯器")) {
             event.setCancelled(true);
             
@@ -134,24 +123,120 @@ public class GUIListener implements Listener {
             GameMode mode = guiManager.getModeFromSlot(event.getSlot());
             
             if (mode != null) {
-                player.closeInventory();
-                
-                // 儲存玩家當前物品欄
-                Map<Integer, ItemStack> savedInventory = new HashMap<>();
-                for (int i = 0; i < player.getInventory().getSize(); i++) {
-                    ItemStack item = player.getInventory().getItem(i);
-                    if (item != null) {
-                        savedInventory.put(i, item.clone());
-                    }
-                }
-                editingKits.put(player.getUniqueId(), savedInventory);
-                editingModes.put(player.getUniqueId(), mode);
-                
-                // 給予該模式的Kit物品
-                plugin.getKitManager().giveKit(player, mode);
-                player.sendMessage("§a已載入 " + mode.getDisplayName() + " 模式的Kit，請編輯後關閉物品欄以儲存");
+                // 打開該模式的Kit編輯GUI
+                playerEditingModes.put(player.getUniqueId(), mode);
+                player.openInventory(guiManager.createKitEditGUI(mode, false));
             }
         }
+        // Kit編輯GUI - 編輯物品
+        else if (title.startsWith("§d管理員 - 編輯 ") || title.startsWith("§d編輯 ")) {
+            int slot = event.getSlot();
+            
+            // 功能按鈕區域（45-53）
+            if (slot >= 45 && slot <= 53) {
+                event.setCancelled(true);
+                
+                if (slot == 45) {
+                    // 保存按鈕
+                    saveKitFromGUI(player, title.startsWith("§d管理員"));
+                } else if (slot == 49) {
+                    // 返回按鈕
+                    if (title.startsWith("§d管理員")) {
+                        player.openInventory(plugin.getGUIManager().createAdminKitEditorGUI());
+                        adminEditingModes.remove(player.getUniqueId());
+                    } else {
+                        player.openInventory(plugin.getGUIManager().createKitEditorGUI());
+                        playerEditingModes.remove(player.getUniqueId());
+                    }
+                } else if (slot == 53) {
+                    // 清空按鈕
+                    event.getInventory().clear();
+                    // 重新放置功能按鈕
+                    ItemStack saveItem = new ItemStack(Material.EMERALD_BLOCK);
+                    ItemMeta saveMeta = saveItem.getItemMeta();
+                    if (saveMeta != null) {
+                        saveMeta.setDisplayName("§a保存Kit");
+                        saveMeta.setLore(Arrays.asList("§7點擊保存當前Kit配置"));
+                        saveItem.setItemMeta(saveMeta);
+                    }
+                    event.getInventory().setItem(45, saveItem);
+                    
+                    ItemStack backItem = new ItemStack(Material.BARRIER);
+                    ItemMeta backMeta = backItem.getItemMeta();
+                    if (backMeta != null) {
+                        backMeta.setDisplayName("§c返回");
+                        backMeta.setLore(Arrays.asList("§7點擊返回Kit編輯器"));
+                        backItem.setItemMeta(backMeta);
+                    }
+                    event.getInventory().setItem(49, backItem);
+                    
+                    ItemStack clearItem = new ItemStack(Material.LAVA_BUCKET);
+                    ItemMeta clearMeta = clearItem.getItemMeta();
+                    if (clearMeta != null) {
+                        clearMeta.setDisplayName("§c清空所有物品");
+                        clearMeta.setLore(Arrays.asList("§7點擊清空所有物品"));
+                        clearItem.setItemMeta(clearMeta);
+                    }
+                    event.getInventory().setItem(53, clearItem);
+                }
+            }
+            // 物品區域（0-35）允許編輯
+            else if (slot >= 0 && slot < 36) {
+                // 允許放置和移動物品
+            }
+            // 其他區域禁止
+            else {
+                event.setCancelled(true);
+            }
+        }
+    }
+    
+    private void saveKitFromGUI(Player player, boolean isAdmin) {
+        UUID uuid = player.getUniqueId();
+        GameMode mode;
+        
+        if (isAdmin) {
+            mode = adminEditingModes.get(uuid);
+        } else {
+            mode = playerEditingModes.get(uuid);
+        }
+        
+        if (mode == null) {
+            player.sendMessage("§c錯誤：找不到正在編輯的模式！");
+            return;
+        }
+        
+        // 從當前打開的GUI獲取物品
+        org.bukkit.inventory.InventoryView view = player.getOpenInventory();
+        if (view == null) {
+            return;
+        }
+        
+        org.bukkit.inventory.Inventory inv = view.getTopInventory();
+        Map<Integer, ItemStack> kitItems = new HashMap<>();
+        
+        // 只讀取0-35槽位的物品
+        for (int i = 0; i < 36; i++) {
+            ItemStack item = inv.getItem(i);
+            if (item != null && item.getType() != Material.AIR) {
+                kitItems.put(i, item.clone());
+            }
+        }
+        
+        // 儲存Kit到配置檔案
+        plugin.getKitManager().saveKit(mode, kitItems);
+        
+        // 清除編輯狀態
+        if (isAdmin) {
+            adminEditingModes.remove(uuid);
+            player.sendMessage("§a[管理員] " + mode.getDisplayName() + " 模式的Kit已儲存！");
+        } else {
+            playerEditingModes.remove(uuid);
+            player.sendMessage("§a" + mode.getDisplayName() + " 模式的Kit已儲存！");
+        }
+        
+        // 關閉GUI
+        player.closeInventory();
     }
     
     @EventHandler
@@ -162,44 +247,19 @@ public class GUIListener implements Listener {
         
         Player player = (Player) event.getPlayer();
         UUID uuid = player.getUniqueId();
+        String title = event.getView().getTitle();
         
-        // 檢查是否在編輯Kit（包括玩家和管理員）
-        if (editingKits.containsKey(uuid)) {
-            // 取得正在編輯的模式
-            GameMode editingMode = editingModes.remove(uuid);
-            if (editingMode == null) {
-                editingMode = GameMode.SWORD; // 預設值
-            }
-            
-            // 儲存Kit配置
-            Map<Integer, ItemStack> kitItems = new HashMap<>();
-            for (int i = 0; i < player.getInventory().getSize(); i++) {
-                ItemStack item = player.getInventory().getItem(i);
-                if (item != null && item.getType() != Material.AIR) {
-                    kitItems.put(i, item.clone());
-                }
-            }
-            
-            // 儲存Kit到配置檔案
-            plugin.getKitManager().saveKit(editingMode, kitItems);
-            
-            // 還原玩家物品欄
-            Map<Integer, ItemStack> savedInventory = editingKits.remove(uuid);
-            if (savedInventory != null) {
-                player.getInventory().clear();
-                for (Map.Entry<Integer, ItemStack> entry : savedInventory.entrySet()) {
-                    player.getInventory().setItem(entry.getKey(), entry.getValue());
-                }
-                player.updateInventory();
-            }
-            
-            // 檢查是否是管理員（有權限）
-            if (player.hasPermission("pvp.admin")) {
-                player.sendMessage("§a[管理員] " + editingMode.getDisplayName() + " 模式的Kit已儲存！");
+        // 如果關閉的是Kit編輯GUI，清除編輯狀態（但不保存）
+        if (title.startsWith("§d管理員 - 編輯 ") || title.startsWith("§d編輯 ")) {
+            if (title.startsWith("§d管理員")) {
+                adminEditingModes.remove(uuid);
             } else {
-                player.sendMessage("§a" + editingMode.getDisplayName() + " 模式的Kit已儲存！");
+                playerEditingModes.remove(uuid);
             }
         }
     }
 }
+
+
+
 

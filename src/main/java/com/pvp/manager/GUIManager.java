@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
+import java.util.Map;
 
 public class GUIManager {
     
@@ -155,6 +156,56 @@ public class GUIManager {
             }
         }
         return null;
+    }
+    
+    /**
+     * 創建Kit編輯GUI（36個槽位，0-35）
+     */
+    public Inventory createKitEditGUI(GameMode mode, boolean isAdmin) {
+        String title = isAdmin ? "§d管理員 - 編輯 " + mode.getDisplayName() + " Kit" : "§d編輯 " + mode.getDisplayName() + " Kit";
+        Inventory gui = Bukkit.createInventory(null, 54, title);
+        
+        // 載入當前Kit的物品
+        Map<Integer, ItemStack> kit = plugin.getKitManager().getKit(mode);
+        for (Map.Entry<Integer, ItemStack> entry : kit.entrySet()) {
+            int slot = entry.getKey();
+            if (slot >= 0 && slot < 36) {
+                gui.setItem(slot, entry.getValue().clone());
+            }
+        }
+        
+        // 在底部欄放置功能按鈕
+        // 槽位45: 保存
+        ItemStack saveItem = new ItemStack(Material.EMERALD_BLOCK);
+        ItemMeta saveMeta = saveItem.getItemMeta();
+        if (saveMeta != null) {
+            saveMeta.setDisplayName("§a保存Kit");
+            saveMeta.setLore(Arrays.asList("§7點擊保存當前Kit配置"));
+            saveItem.setItemMeta(saveMeta);
+        }
+        gui.setItem(45, saveItem);
+        
+        // 槽位49: 返回
+        ItemStack backItem = new ItemStack(Material.BARRIER);
+        ItemMeta backMeta = backItem.getItemMeta();
+        if (backMeta != null) {
+            backMeta.setDisplayName("§c返回");
+            backMeta.setLore(Arrays.asList("§7點擊返回Kit編輯器"));
+            backItem.setItemMeta(backMeta);
+        }
+        gui.setItem(49, backItem);
+        
+        // 槽位53: 清空
+        ItemStack clearItem = new ItemStack(Material.LAVA_BUCKET);
+        ItemMeta clearMeta = clearItem.getItemMeta();
+        if (clearMeta != null) {
+            clearMeta.setDisplayName("§c清空所有物品");
+            clearMeta.setLore(Arrays.asList("§7點擊清空所有物品"));
+            clearItem.setItemMeta(clearMeta);
+        }
+        gui.setItem(53, clearItem);
+        
+        return gui;
     }
 }
 
