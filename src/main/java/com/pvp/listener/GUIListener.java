@@ -36,6 +36,11 @@ public class GUIListener implements Listener {
             return;
         }
         
+        // 檢查玩家是否在遊戲中，如果在遊戲中則不觸發GUI
+        if (plugin.getGameManager().getPlayerGame(player) != null) {
+            return;
+        }
+        
         // 檢查是否是大廳的快速戰鬥物品
         String lobbyWorld = plugin.getConfig().getString("lobby-world", "lobby");
         if (!player.getWorld().getName().equals(lobbyWorld)) {
@@ -47,9 +52,18 @@ public class GUIListener implements Listener {
             return;
         }
         
-        // 打開模式選擇GUI
-        event.setCancelled(true);
-        player.openInventory(plugin.getGUIManager().createModeSelectGUI());
+        // 檢查物品是否有正確的顯示名稱（大廳物品）
+        if (item.hasItemMeta()) {
+            org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+            if (meta != null && meta.hasDisplayName()) {
+                String displayName = meta.getDisplayName();
+                if (displayName != null && displayName.equals("§b快速戰鬥")) {
+                    // 打開模式選擇GUI
+                    event.setCancelled(true);
+                    player.openInventory(plugin.getGUIManager().createModeSelectGUI());
+                }
+            }
+        }
     }
     
     @EventHandler
@@ -78,7 +92,37 @@ public class GUIListener implements Listener {
                 plugin.getServer().dispatchCommand(player, "pvp game join " + mode.getId());
             }
         }
-        // Kit編輯器GUI
+        // Admin Kit編輯器GUI
+        else if (title.equals("§d管理員 - Kit編輯器")) {
+            event.setCancelled(true);
+            
+            if (event.getCurrentItem() == null) {
+                return;
+            }
+            
+            GUIManager guiManager = plugin.getGUIManager();
+            GameMode mode = guiManager.getModeFromSlot(event.getSlot());
+            
+            if (mode != null) {
+                player.closeInventory();
+                
+                // 儲存玩家當前物品欄
+                Map<Integer, ItemStack> savedInventory = new HashMap<>();
+                for (int i = 0; i < player.getInventory().getSize(); i++) {
+                    ItemStack item = player.getInventory().getItem(i);
+                    if (item != null) {
+                        savedInventory.put(i, item.clone());
+                    }
+                }
+                editingKits.put(player.getUniqueId(), savedInventory);
+                editingModes.put(player.getUniqueId(), mode);
+                
+                // 給予該模式的Kit物品
+                plugin.getKitManager().giveKit(player, mode);
+                player.sendMessage("§a已載入 " + mode.getDisplayName() + " 模式的Kit，請編輯後關閉物品欄以儲存");
+            }
+        }
+        // Kit編輯器GUI（玩家用）
         else if (title.equals("§dKit編輯器")) {
             event.setCancelled(true);
             
@@ -119,7 +163,7 @@ public class GUIListener implements Listener {
         Player player = (Player) event.getPlayer();
         UUID uuid = player.getUniqueId();
         
-        // 檢查是否在編輯Kit
+        // 檢查是否在編輯Kit（包括玩家和管理員）
         if (editingKits.containsKey(uuid)) {
             // 取得正在編輯的模式
             GameMode editingMode = editingModes.remove(uuid);
@@ -149,7 +193,12 @@ public class GUIListener implements Listener {
                 player.updateInventory();
             }
             
-            player.sendMessage("§a" + editingMode.getDisplayName() + " 模式的Kit已儲存！");
+            // 檢查是否是管理員（有權限）
+            if (player.hasPermission("pvp.admin")) {
+                player.sendMessage("§a[管理員] " + editingMode.getDisplayName() + " 模式的Kit已儲存！");
+            } else {
+                player.sendMessage("§a" + editingMode.getDisplayName() + " 模式的Kit已儲存！");
+            }
         }
     }
 }

@@ -26,6 +26,62 @@ public class GUIManager {
         GameMode[] modes = {GameMode.SWORD, GameMode.AXE, GameMode.UHC, GameMode.MACE, GameMode.CRYSTAL};
         
         for (int i = 0; i < modes.length && i < slots.length; i++) {
+            ItemStack item = createModeSelectItem(modes[i]);
+            gui.setItem(slots[i], item);
+        }
+        
+        return gui;
+    }
+    
+    private ItemStack createModeSelectItem(GameMode mode) {
+        Material material;
+        String color;
+        
+        switch (mode) {
+            case SWORD:
+                material = Material.DIAMOND_SWORD;
+                color = "§b";
+                break;
+            case AXE:
+                material = Material.DIAMOND_AXE;
+                color = "§6";
+                break;
+            case UHC:
+                material = Material.GOLDEN_APPLE;
+                color = "§e";
+                break;
+            case MACE:
+                material = Material.IRON_SWORD;
+                color = "§7";
+                break;
+            case CRYSTAL:
+                material = Material.END_CRYSTAL;
+                color = "§d";
+                break;
+            default:
+                material = Material.STONE;
+                color = "§f";
+        }
+        
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(color + mode.getDisplayName());
+            meta.setLore(Arrays.asList("§7點擊加入此模式的遊戲"));
+            item.setItemMeta(meta);
+        }
+        
+        return item;
+    }
+    
+    public Inventory createKitEditorGUI() {
+        Inventory gui = Bukkit.createInventory(null, 54, "§dKit編輯器");
+        
+        // 放置各遊戲模式的代表物品
+        int[] slots = {20, 21, 22, 23, 24}; // 中心第二欄的位置
+        GameMode[] modes = {GameMode.SWORD, GameMode.AXE, GameMode.UHC, GameMode.MACE, GameMode.CRYSTAL};
+        
+        for (int i = 0; i < modes.length && i < slots.length; i++) {
             ItemStack item = createModeItem(modes[i]);
             gui.setItem(slots[i], item);
         }
@@ -33,8 +89,8 @@ public class GUIManager {
         return gui;
     }
     
-    public Inventory createKitEditorGUI() {
-        Inventory gui = Bukkit.createInventory(null, 54, "§dKit編輯器");
+    public Inventory createAdminKitEditorGUI() {
+        Inventory gui = Bukkit.createInventory(null, 54, "§d管理員 - Kit編輯器");
         
         // 放置各遊戲模式的代表物品
         int[] slots = {20, 21, 22, 23, 24}; // 中心第二欄的位置

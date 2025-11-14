@@ -157,23 +157,34 @@ public class GameManager {
         if (game != null) {
             game.setState(GameState.ENDING);
             
-            // 顯示遊戲結束title給所有玩家
-            for (UUID uuid : game.getPlayers()) {
+            // 顯示遊戲結束title給所有玩家並清除遊戲物品
+            Set<UUID> players = new HashSet<>(game.getPlayers());
+            for (UUID uuid : players) {
                 Player player = org.bukkit.Bukkit.getPlayer(uuid);
                 if (player != null) {
+                    // 立即清除玩家身上的所有遊戲物品
+                    player.getInventory().clear();
+                    player.getInventory().setArmorContents(null);
+                    player.updateInventory();
+                    
                     player.sendTitle("§c遊戲結束", "", 0, 40, 20);
+                    
+                    // 離開遊戲並返回大廳
+                    plugin.getPlayerManager().leaveGame(player);
+                    playerGames.remove(uuid);
+                    
+                    // 傳送回大廳
+                    String lobbyWorld = plugin.getConfig().getString("lobby-world", "lobby");
+                    org.bukkit.World world = org.bukkit.Bukkit.getWorld(lobbyWorld);
+                    if (world != null) {
+                        player.teleport(world.getSpawnLocation());
+                    }
                 }
             }
             
             // 釋放位置
             if (game.getMapPosition() > 0) {
                 plugin.getMapManager().releasePosition(game.getGameMode(), game.getMapPosition());
-            }
-            
-            // 移除所有玩家
-            Set<UUID> players = new HashSet<>(game.getPlayers());
-            for (UUID uuid : players) {
-                playerGames.remove(uuid);
             }
             
             // 移除遊戲

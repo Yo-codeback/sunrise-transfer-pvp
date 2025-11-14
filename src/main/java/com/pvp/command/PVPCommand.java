@@ -340,12 +340,9 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
                 
-            case "npc":
-                if (args.length < 2) {
-                    player.sendMessage("§c用法: /pvp admin npc <spawn|remove|reload> [類型]");
-                    return;
-                }
-                handleNPCCommand(player, args[1], args.length > 2 ? args[2] : null);
+            case "kit":
+                // 打開管理員Kit編輯器
+                player.openInventory(plugin.getGUIManager().createAdminKitEditorGUI());
                 break;
                 
             default:
@@ -426,35 +423,6 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
         }
     }
     
-    private void handleNPCCommand(Player player, String action, String typeStr) {
-        if (action.equalsIgnoreCase("reload")) {
-            plugin.getNPCManager().removeAllNPCs();
-            plugin.getNPCManager().loadNPCs();
-            player.sendMessage("§aNPC已重新載入！");
-            return;
-        }
-        
-        if (typeStr == null) {
-            player.sendMessage("§c請指定NPC類型！");
-            return;
-        }
-        
-        com.pvp.npc.NPCType type = com.pvp.npc.NPCType.fromString(typeStr);
-        if (type == null) {
-            player.sendMessage("§c無效的NPC類型！");
-            return;
-        }
-        
-        if (action.equalsIgnoreCase("spawn")) {
-            plugin.getNPCManager().spawnNPC(type);
-            player.sendMessage("§a已生成NPC: " + type.getDisplayName());
-        } else if (action.equalsIgnoreCase("remove")) {
-            plugin.getNPCManager().removeNPC(type);
-            player.sendMessage("§a已移除NPC: " + type.getDisplayName());
-        } else {
-            player.sendMessage("§c用法: /pvp admin npc <spawn|remove|reload> [類型]");
-        }
-    }
     
     private void sendHelp(Player player) {
         player.sendMessage("§6=== PVP 插件指令 ===");
@@ -474,7 +442,7 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§e/pvp admin player <模式> <數量> §7- 設定人數");
         player.sendMessage("§e/pvp admin reload §7- 重新載入配置");
         player.sendMessage("§e/pvp admin list §7- 列出所有遊戲");
-        player.sendMessage("§e/pvp admin npc <spawn|remove|reload> [類型] §7- NPC管理");
+        player.sendMessage("§e/pvp admin kit §7- 打開Kit編輯器（管理員）");
     }
     
     @Override
@@ -492,7 +460,7 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
             } else if (args[0].equalsIgnoreCase("admin")) {
                 // 檢查權限
                 if (sender.hasPermission("pvp.admin")) {
-                    completions.addAll(Arrays.asList("map", "id", "open", "close", "player", "reload", "list", "npc"));
+                    completions.addAll(Arrays.asList("map", "id", "open", "close", "player", "reload", "list", "kit"));
                 }
             }
         }
@@ -521,9 +489,6 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
                     for (GameInstance game : plugin.getGameManager().getAllGames()) {
                         completions.add(game.getGameID());
                     }
-                } else if (args[1].equalsIgnoreCase("npc")) {
-                    // NPC操作
-                    completions.addAll(Arrays.asList("spawn", "remove", "reload"));
                 }
             }
         }
@@ -538,10 +503,6 @@ public class PVPCommand implements CommandExecutor, TabCompleter {
                 } else if (args[1].equalsIgnoreCase("player")) {
                     // 玩家數量建議
                     completions.addAll(Arrays.asList("2", "4", "6", "8", "10"));
-                } else if (args[1].equalsIgnoreCase("npc") && 
-                          (args[2].equalsIgnoreCase("spawn") || args[2].equalsIgnoreCase("remove"))) {
-                    // NPC類型
-                    completions.addAll(Arrays.asList("sword", "axe", "uhc", "mace", "crystal", "kiteditor"));
                 }
             }
         }

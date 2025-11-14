@@ -128,6 +128,11 @@ public class PlayerListener implements Listener {
         
         // 如果玩家在遊戲中，顯示死亡title
         if (game != null && game.getState() == GameState.IN_PROGRESS) {
+            // 立即清除玩家身上的所有遊戲物品
+            player.getInventory().clear();
+            player.getInventory().setArmorContents(null);
+            player.updateInventory();
+            
             player.sendTitle("§c您已死亡", "", 0, 40, 20);
             
             // 從遊戲中移除死亡玩家

@@ -2,9 +2,9 @@
 
 基於Folia核心的PVP插件，支援Minecraft 1.20+版本。
 
-**版本**: 0.2.1-alpha  
-**日期**: 2025/11/13  
-**狀態**: 第三次內測 - 遊戲匹配與死亡處理優化
+**版本**: 0.3.0-alpha  
+**日期**: 2025/11/14  
+**狀態**: 第四次內測 - 物品清理與Kit管理優化
 
 ---
 
@@ -14,7 +14,6 @@
 - [安裝](#安裝)
 - [配置](#配置)
 - [指令](#指令)
-- [NPC系統](#npc系統)
 - [Tab補全](#tab補全)
 - [遊戲流程](#遊戲流程)
 - [開發](#開發)
@@ -25,17 +24,18 @@
 ## 功能特色
 
 - 🎮 **5種遊戲模式**：Sword、Axe、UHC、Mace、Crystal
-- 👤 **自製NPC系統**，無需依賴其他插件
 - 🗺️ **固定位置系統**（每個模式5個固定位置）
-- 🎒 **Kit編輯器**，可自訂各模式裝備
+- 🎒 **Kit編輯器GUI**，可自訂各模式裝備（玩家和管理員）
 - 📋 **完整的指令系統**，支援Tab補全
 - 🎯 **自動匹配系統**：自動匹配等待中的遊戲或創建新遊戲
 - 🔗 **通過ID加入遊戲**：可以使用遊戲ID直接加入指定遊戲
 - 📍 **位置管理系統**（無需多世界支援）
 - 🛡️ **等待期間無敵保護**：等待和倒數期間不會受到傷害
 - 🚪 **退出遊戲物品**（紅色床，右鍵退出）
-- 💀 **死亡處理系統**：死亡時顯示title，自動移除並檢查遊戲結束
-- 🏁 **遊戲結束提示**：遊戲結束時所有玩家看到title提示
+- 💀 **死亡處理系統**：死亡時立即清除遊戲物品，顯示title，自動移除並檢查遊戲結束
+- 🏁 **遊戲結束處理**：遊戲結束時立即清除所有玩家物品並傳送回大廳
+- ⚙️ **管理員Kit編輯器**：管理員可使用GUI自訂每個遊戲模式的物品
+- 🎯 **智能物品檢測**：遊戲中不會觸發大廳物品的GUI
 
 ---
 
@@ -97,21 +97,6 @@ game-positions:
       # ... 更多位置
 ```
 
-### NPC位置配置
-
-在`config.yml`中設定NPC位置：
-
-```yaml
-npc-locations:
-  sword:
-    world: "lobby"
-    x: 0.5
-    y: 64.0
-    z: 0.5
-    yaw: 0.0
-    pitch: 0.0
-```
-
 ### Kit配置
 
 Kit配置檔案位於`plugins/PVPPlugin/kits/`目錄，每個模式一個檔案：
@@ -148,99 +133,7 @@ items:
 - `/pvp admin close <遊戲ID>` - 強制結束遊戲
 - `/pvp admin reload` - 重新載入配置
 - `/pvp admin list` - 列出所有遊戲
-- `/pvp admin npc spawn <類型>` - 生成NPC
-- `/pvp admin npc remove <類型>` - 移除NPC
-- `/pvp admin npc reload` - 重新載入NPC
-
----
-
-## NPC系統
-
-### NPC生成方式
-
-#### 1. 自動生成（預設）
-
-**插件啟動時自動生成所有NPC**
-
-當插件啟用時，會自動執行以下步驟：
-
-1. 讀取 `config.yml` 中的 `npc-locations` 配置
-2. 根據配置自動生成所有NPC：
-   - Sword NPC（淺藍色）
-   - Axe NPC（橘色）
-   - UHC NPC（黃色）
-   - Mace NPC（灰色）
-   - Crystal NPC（紫色）
-   - Kit Editor NPC（粉色）
-
-**不需要任何指令**，插件啟動後NPC就會自動出現在大廳！
-
-#### 2. 手動生成（管理員指令）
-
-如果需要重新生成特定NPC，可以使用指令：
-
-```
-/pvp admin npc spawn <類型>
-```
-
-**可用類型**：
-- `sword` - Sword NPC
-- `axe` - Axe NPC
-- `uhc` - UHC NPC
-- `mace` - Mace NPC
-- `crystal` - Crystal NPC
-- `kiteditor` - Kit Editor NPC
-
-**範例**：
-```
-/pvp admin npc spawn sword    # 生成Sword NPC
-/pvp admin npc spawn kiteditor # 生成Kit Editor NPC
-```
-
-**注意**：如果該類型的NPC已存在，會先移除舊的再生成新的。
-
-#### 3. 移除NPC
-
-移除特定NPC：
-```
-/pvp admin npc remove <類型>
-```
-
-移除所有NPC（插件停用時會自動執行）：
-```
-/pvp admin npc reload  # 移除所有NPC並重新載入
-```
-
-### NPC特性
-
-- **實體類型**：ArmorStand（盔甲架）
-- **可見性**：不可見（只顯示名稱標籤）
-- **互動**：可點擊（左鍵/右鍵）
-- **無敵**：無法被破壞
-- **無重力**：不會掉落
-- **標記模式**：不會阻擋玩家移動
-
-### NPC常見問題
-
-**Q: 為什麼看不到NPC？**
-
-A: 檢查以下幾點：
-1. 確認大廳世界已創建（預設名稱：`lobby`）
-2. 檢查 `config.yml` 中的NPC位置配置是否正確
-3. 確認NPC所在的世界已載入
-4. 使用 `/pvp admin npc reload` 重新載入NPC
-
-**Q: 可以生成多個相同類型的NPC嗎？**
-
-A: **不可以**。系統設計為每個NPC類型只有一個實例。如果需要多個相同功能的NPC，需要修改代碼支援多實例。
-
-**Q: NPC消失怎麼辦？**
-
-A: 使用 `/pvp admin npc spawn <類型>` 重新生成，或使用 `/pvp admin npc reload` 重新載入所有NPC。
-
-**Q: 如何修改NPC位置？**
-
-A: 編輯 `config.yml` 中的 `npc-locations` 區塊，修改座標後使用 `/pvp admin npc reload` 重新載入。
+- `/pvp admin kit` - 打開管理員Kit編輯器（GUI方式編輯各模式物品）
 
 ---
 
@@ -278,7 +171,7 @@ A: 編輯 `config.yml` 中的 `npc-locations` 區塊，修改座標後使用 `/p
 - `player` - 設定人數
 - `reload` - 重新載入配置
 - `list` - 列出所有遊戲
-- `npc` - NPC管理
+- `kit` - 打開管理員Kit編輯器
 
 #### `/pvp admin map setpos <模式>`
 - `1` - 地圖編號 1
@@ -290,18 +183,6 @@ A: 編輯 `config.yml` 中的 `npc-locations` 區塊，修改座標後使用 `/p
 #### `/pvp admin open` 或 `/pvp admin close`
 - 自動補全所有進行中的遊戲ID（動態列表）
 
-#### `/pvp admin npc`
-- `spawn` - 生成NPC
-- `remove` - 移除NPC
-- `reload` - 重新載入NPC
-
-#### `/pvp admin npc spawn` 或 `/pvp admin npc remove`
-- `sword` - Sword NPC
-- `axe` - Axe NPC
-- `uhc` - UHC NPC
-- `mace` - Mace NPC
-- `crystal` - Crystal NPC
-- `kiteditor` - Kit Editor NPC
 
 ### Tab補全特殊功能
 
@@ -355,10 +236,12 @@ A: 編輯 `config.yml` 中的 `npc-locations` 區塊，修改座標後使用 `/p
 - 顯示 "§a遊戲開始！" title
 
 **遊戲中**：
-- 玩家死亡時會顯示 "§c您已死亡" title
+- 玩家死亡時會立即清除所有遊戲物品和裝備
+- 顯示 "§c您已死亡" title
 - 死亡玩家會自動從遊戲中移除
 - 當只剩一個玩家時，遊戲自動結束
-- 遊戲結束時所有玩家會看到 "§c遊戲結束" title
+- 遊戲結束時所有玩家會立即清除物品並傳送回大廳
+- 所有玩家會看到 "§c遊戲結束" title
 
 ### 退出遊戲
 
@@ -366,18 +249,29 @@ A: 編輯 `config.yml` 中的 `npc-locations` 區塊，修改座標後使用 `/p
 - 右鍵點擊**退出遊戲物品**（紅色床）離開遊戲
 - 使用指令 `/pvp game leave` 或 `/pvp lobby` 離開遊戲
 
-### 編輯Kit
-
-1. 點擊Kit Editor NPC或使用`/pvp kit`
-2. 選擇要編輯的遊戲模式
-3. 在物品欄中調整物品位置
-4. 關閉物品欄自動儲存
 
 ### 快速戰鬥
 
-1. 在大廳手持快速戰鬥物品（鑽劍）
-2. 點擊打開模式選擇GUI
+1. 在大廳手持快速戰鬥物品（鑽劍，顯示名稱：§b快速戰鬥）
+2. 右鍵點擊打開模式選擇GUI
 3. 選擇遊戲模式即可加入
+
+**注意**：只有在槽位0且在大廳世界時才會觸發GUI，遊戲中不會觸發。
+
+### 編輯Kit
+
+#### 玩家編輯Kit
+1. 使用指令 `/pvp kit` 打開Kit編輯器GUI
+2. 選擇要編輯的遊戲模式
+3. 在物品欄中調整物品位置和數量
+4. 關閉物品欄自動儲存
+
+#### 管理員編輯Kit
+1. 使用指令 `/pvp admin kit` 打開管理員Kit編輯器GUI
+2. 選擇要編輯的遊戲模式
+3. 在物品欄中調整物品位置和數量
+4. 關閉物品欄自動儲存
+5. 儲存後會顯示 `[管理員]` 標記確認
 
 ---
 
@@ -426,7 +320,6 @@ src/main/java/com/pvp/
   │   ├── MapManager.java
   │   ├── KitManager.java
   │   ├── PlayerManager.java
-  │   ├── NPCManager.java
   │   └── GUIManager.java
   ├── command/                  # 指令處理
   │   └── PVPCommand.java
@@ -434,16 +327,9 @@ src/main/java/com/pvp/
   │   ├── GameInstance.java
   │   ├── GameMode.java
   │   └── GameState.java
-  ├── gui/                      # GUI相關
-  │   ├── ModeSelectGUI.java
-  │   └── KitEditorGUI.java
-  ├── npc/                      # NPC相關
-  │   ├── GameNPC.java
-  │   └── NPCType.java
   ├── listener/                 # 事件監聽
   │   ├── PlayerListener.java
-  │   ├── GUIListener.java
-  │   └── NPCListener.java
+  │   └── GUIListener.java
   └── util/                     # 工具類別
       ├── ConfigUtil.java
       └── IDGenerator.java
@@ -461,12 +347,23 @@ src/main/java/com/pvp/
 3. **大廳世界**: 需要先創建大廳世界（預設名稱：`lobby`）
 4. **權限**: 管理員指令需要`pvp.admin`權限
 5. **位置管理**: 系統會自動管理位置的占用狀態，遊戲結束後自動釋放
-6. **NPC生成**: NPC會在插件啟動後延遲2秒自動生成，確保世界已載入
-7. **等待期間保護**: 玩家在等待或倒數期間處於無敵狀態，不會受到傷害
+6. **等待期間保護**: 玩家在等待或倒數期間處於無敵狀態，不會受到傷害
+7. **物品清理**: 玩家死亡或遊戲結束時會立即清除所有遊戲物品，確保不會帶出遊戲
+8. **GUI觸發**: 只有在大廳世界且手持正確的快速戰鬥物品時才會觸發GUI
 
 ---
 
 ## 更新日誌
+
+### 0.3.0-alpha (2025/11/14)
+**物品清理與Kit管理優化**
+- ✨ **立即清除遊戲物品**：玩家死亡或遊戲結束時立即清除所有遊戲物品和裝備
+- ✨ **管理員Kit編輯器**：新增 `/pvp admin kit` 指令，管理員可使用GUI編輯各模式的Kit
+- 🔧 **修復鑽石劍衝突**：遊戲中使用鑽石劍不會觸發大廳的快速戰鬥GUI
+- 🔧 **修復GUI名稱**：模式選擇GUI的提示文字改為「點擊加入此模式的遊戲」
+- 🔧 **改進物品檢測**：只有大廳的快速戰鬥物品（顯示名稱正確）才會觸發GUI
+- 🗑️ **移除NPC系統**：完全移除NPC相關功能，改用GUI和指令系統
+- 📝 **更新文檔**：移除NPC相關說明，更新指令和功能說明
 
 ### 0.2.1-alpha (2025/11/13)
 **遊戲匹配與死亡處理優化**
@@ -511,6 +408,55 @@ src/main/java/com/pvp/
 ## 授權
 
 此專案為內部開發專案。
+
+---
+
+## 功能狀態
+
+### ✅ 已實現功能
+
+#### 核心功能
+- ✅ 5種遊戲模式（Sword、Axe、UHC、Mace、Crystal）
+- ✅ 固定位置系統（每個模式5個位置）
+- ✅ 自動匹配系統
+- ✅ 通過遊戲ID加入遊戲
+- ✅ 等待期間無敵保護
+- ✅ 遊戲倒數系統
+- ✅ 死亡處理（立即清除物品）
+- ✅ 遊戲結束處理（立即清除物品並傳送）
+- ✅ 退出遊戲物品（紅色床）
+
+#### GUI系統
+- ✅ 模式選擇GUI（快速戰鬥）
+- ✅ Kit編輯器GUI（玩家）
+- ✅ 管理員Kit編輯器GUI
+
+#### 指令系統
+- ✅ 完整的玩家指令
+- ✅ 完整的管理員指令
+- ✅ Tab補全支援
+
+#### 物品管理
+- ✅ Kit配置檔案系統
+- ✅ 大廳物品管理
+- ✅ 遊戲物品自動清理
+
+### ❌ 未實現功能
+
+#### 計劃中的功能
+- ❌ Party/Friend系統（玩家頭顱物品）
+- ❌ 遊戲統計系統
+- ❌ 排行榜系統
+- ❌ 遊戲記錄/回放
+- ❌ 自訂遊戲規則配置
+- ❌ 多語言支援
+- ❌ 遊戲觀戰模式
+- ❌ 遊戲獎勵系統
+
+#### 待優化功能
+- ⚠️ 玩家數量設定指令（`/pvp admin player`）已存在但未完全實作
+- ⚠️ 遊戲平衡性調整工具
+- ⚠️ 更詳細的遊戲日誌
 
 ---
 
